@@ -98,7 +98,7 @@ void Obloq::ping()
 bool Obloq::sendMsg(const String & msg)
 {
 	//Serial.print(F("Arduino send - > "));
-	//Serial.println(msg);
+	Serial.println(msg);
 		if (this->_isSerialReady)
 	{
 		if (this->_hardSerial)
@@ -132,7 +132,10 @@ void Obloq::receiveData(String data)
 	{ 
 		this->_handleRaw(data);
 	}
-	if (data == F("{\"type\":\"system\",\"message\":\"PONG!\"}"))
+	String temp = F("{\"type\":\"system\",\"message\":\"PONG!\"}");
+	// Serial.print("length: ");
+	// Serial.println(temp.length());
+	if (data == temp)
 	{
 		this->_isSerialReady = true;
 		if (this->_wifiState == 2)
@@ -141,11 +144,12 @@ void Obloq::receiveData(String data)
 		}
 		if (this->_mac == "")
 		{
-			this->sendMsg("{\"type\":\"system\",\"SSID\":\"" + this->_ssid + "\",\"PWD\":\"" + this->_pwd + "\"}");
+			this->sendMsg((String)F("{\"type\":\"system\",\"SSID\":\"") + this->_ssid + F("\",\"PWD\":\"") + this->_pwd + F("\"}"));
+			//Serial.println("hello jason");
 		}
 		else
 		{
-			this->sendMsg("{\"type\":\"system\",\"SSID\":\"" + this->_ssid + "\",\"PWD\":\"" + this->_pwd + "\",\"MAC\":\"" + this->_mac + "\"}");
+			this->sendMsg((String)F("{\"type\":\"system\",\"SSID\":\"") + this->_ssid + F("\",\"PWD\":\"") + this->_pwd + F("\",\"MAC\":\"") + this->_mac + F("\"}"));
 		}
 		return;
 	}
@@ -252,7 +256,7 @@ void Obloq::connect(const String& client_id,const String& iot_id,const String& i
  */
 void Obloq::connect(const String& client_id,const String& iot_id,const String& iot_pwd,const String& url,const String& port)
 {
-	String connect_msg = "{\"type\":\"mqtt\",\"method\":\"connect\",\"ClientId\":\"" + client_id + "\",\"Iot_id\":\"" + iot_id + "\",\"Iot_pwd\":\""+ iot_pwd + "\",\"url\":\"" + url + "\",\"port\":\"" + port + "\"}";
+	String connect_msg = (String)F("{\"type\":\"mqtt\",\"method\":\"connect\",\"ClientId\":\"") + client_id + F("\",\"Iot_id\":\"") + iot_id + F("\",\"Iot_pwd\":\"")+ iot_pwd + F("\",\"url\":\"") + url + F("\",\"port\":\"") + port + F("\"}");
 	this->sendMsg(connect_msg);
 }
 
@@ -274,7 +278,7 @@ void Obloq::reconnect()
  */
 void Obloq::subscribe(const String& topic)
 {
-	String subscribe_msg = "{\"type\":\"mqtt\",\"method\":\"subscribe\",\"topic\":\"" + topic + "\"}";
+	String subscribe_msg = (String)F("{\"type\":\"mqtt\",\"method\":\"subscribe\",\"topic\":\"") + topic + F("\"}");
 	this->sendMsg(subscribe_msg);
 }
 /** 
@@ -284,7 +288,7 @@ void Obloq::subscribe(const String& topic)
  */
 void Obloq::publish(const String& topic, const String &message)
 {
-	String publish_msg = "{\"type\":\"mqtt\",\"method\":\"publish\",\"topic\":\"" + topic + "\",\"message\":\"" + message + "\"}";
+	String publish_msg = (String)F("{\"type\":\"mqtt\",\"method\":\"publish\",\"topic\":\"") + topic + F("\",\"message\":\"") + message + F("\"}");
 	this->sendMsg(publish_msg);
 }
 

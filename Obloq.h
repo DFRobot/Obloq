@@ -1,4 +1,6 @@
 #pragma once
+#include "ArduinoJson.h"
+
 #define INTERVAL 1000
 
 class HardwareSerial;
