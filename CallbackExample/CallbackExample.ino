@@ -2,8 +2,8 @@
 #include <SoftwareSerial.h>
 #include "Obloq.h"
 
-const String ssid = "wifissid";
-const String password = "wifipwd";
+const String ssid = "DFRobot-guest";
+const String password = "dfrobot@2017";
 const String client_id = "SkxprkFyE-";
 const String iot_id = "r1qHJFJ4Z";
 const String iot_pwd = "SylqH1Y1VZ";

@@ -97,9 +97,7 @@ void Obloq::ping()
  */
 bool Obloq::sendMsg(const String & msg)
 {
-	//Serial.print(F("Arduino send - > "));
-	Serial.println(msg);
-		if (this->_isSerialReady)
+	if (this->_isSerialReady)
 	{
 		if (this->_hardSerial)
 		{
@@ -132,10 +130,7 @@ void Obloq::receiveData(String data)
 	{ 
 		this->_handleRaw(data);
 	}
-	String temp = F("{\"type\":\"system\",\"message\":\"PONG!\"}");
-	// Serial.print("length: ");
-	// Serial.println(temp.length());
-	if (data == temp)
+	if (data == F("{\"type\":\"system\",\"message\":\"PONG!\"}"))
 	{
 		this->_isSerialReady = true;
 		if (this->_wifiState == 2)
@@ -145,7 +140,6 @@ void Obloq::receiveData(String data)
 		if (this->_mac == "")
 		{
 			this->sendMsg((String)F("{\"type\":\"system\",\"SSID\":\"") + this->_ssid + F("\",\"PWD\":\"") + this->_pwd + F("\"}"));
-			//Serial.println("hello jason");
 		}
 		else
 		{
