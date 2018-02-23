@@ -1,101 +1,253 @@
-#pragma once
-#include <Arduino.h>
-#define INTERVAL 1000
+/*
+ * @Author: Jason 
+ * @Date: 2018-02-09 09:54:51 
+ * @Last Modified by: Jason
+ * @Last Modified time: 2018-02-22 
+ */
+#ifndef _OBLOQ_H_
+#define _OBLOQ_H_
+#include "Arduino.h"
 
-#define OBLOQWIFIDISCONNECT "1"
-#define OBLOQWIFICONNECTING "2"
-#define OBLOQWIFICONNECT "3"
-#define OBLOQWIFICONNECTFAILD "4"
+//最多能够监听的Topic个数
+#define MAXTOPICNUMBER 5
 
-class HardwareSerial;
-class SoftwareSerial;
+//返回消息的code码,用来判断OBLOQ发送的消息是否得到响应
+#define SUCCESSED "1"
+#define FAILED    "2"
 
-typedef void(*HandleRaw)(const String& data);
-typedef void(*ReceiveMessageCallbak)(const String topic,const String message);
+//返回消息的类型
+#define SYSTEMTYPE "1"
+#define WIFITYPE   "2"
+#define MQTTTYPE   "4"
+
+//wifi连接状态下的各个子状态
+#define WIFIDISCONNECT    "1"
+#define WIFICONNECTING    "2"
+#define WIFICONNECTED     "3"
+#define WIFICONNECTFAILED "4"
+
+//mqtt状态下的各个子状态
+#define MQTTCONNECT    "1"
+#define MQTTSUBSCRIBE  "2"
+#define MQTTPUBLISH    "3"
+#define MQTTRECEIVEMSG "5" 
+
+//Obloq当前的执行状态
+enum State
+{
+    none,
+    ping,
+    ready,
+    wifiConnecting,
+    mqttConnecting,
+    mqttConnected
+};
+
+
+//wifi协议各字段的位置
+class wifiProtocol
+{
+public:
+    static const uint8_t wifiType    = 0;
+    static const uint8_t wifiCode    = 1;
+    static const uint8_t wifiMessage = 2;
+};
+
+//mqtt协议各字段的位置
+class mqttProtocol
+{
+public:
+    static const uint8_t mqttType      = 0;
+    static const uint8_t mqttMethod    = 1;
+    static const uint8_t mqttFunction  = 2;
+    static const uint8_t mqttCode      = 3;
+    static const uint8_t mqttMessage   = 4;
+    static const uint8_t mqttTopic     = 3;
+};
 
 class Obloq
 {
+public:
+    //回调函数的函数指针
+    typedef void (*RawHandle)(const String& message);
+    typedef void (*MsgHandle)(const String& topic, const String& message);
+
+public:
+    /** 
+     * @brief 构造函数,连接指定url的Iot
+     * @param   serial:设备ID
+     * @param   ssid:wifi账号
+     * @param:  pwd:wifi密码
+     * @param:  url:连接的iot网址
+     * @param:  port:连接iot的端口
+     * @param:  iotID:连接iot的用户ID,连接Easy Iot可在工作间里面获取这个ID
+     * @param:  iotPwd:连接iot的密码，连接Easy Iot可在工作间里面获取这个ID
+     * @return: 无
+     */
+    Obloq(Stream *serial, const String& ssid, const String& pwd, const String& url,const String& port, const String& iotId, const String& iotPwd);
+
+    /** 
+     * @brief 构造函数,连接默认的Easy Iot
+     * @param   serial:设备ID
+     * @param   ssid:wifi账号
+     * @param:  pwd:wifi密码
+     * @param:  iotID:连接iot的用户ID,连接Easy Iot可在工作间里面获取这个ID
+     * @param:  iotPwd:连接iot的密码，连接Easy Iot可在工作间里面获取这个ID
+     * @return: 无
+     */
+    Obloq(Stream *serial, const String& ssid, const String& pwd, const String& iotId, const String& iotPwd);
+    ~Obloq();
+
+
+    /** 
+     * @brief 设置原始数据回调函数,当有错误发生时会调用设置的回调函数来返回错误信息
+     * @param   handle:回调函数
+     * @return: 无
+     */
+    void setRawHandle(RawHandle handle);
+
+    /** 
+     * @brief   设置Iot设备接收消息回调函数,返回接收消息的tpoic和消息内容
+     * @param   handle:回调函数
+     * @return: 无
+     */
+    void setMsgHandle(MsgHandle handle);
+
+    /** 
+     * @brief   获取OBLOQ连接Iot状态
+     * @return: true:连接成功 ，false:连接失败
+     */
+    bool enable() const {return this->_enable;}
+
+    /** 
+     * @brief   获取wifi连接是否成功 
+     * @return: true:wifi连接成功,wifi连接失败
+     */
+    bool isWifiConnected();
+
+    /** 
+     * @brief   获取设备IP,OBLOQ正常连接wifi后会获得一个特定的IP地址 
+     * @return: 设备ip
+     */
+    String getIp() const {return this->_ip;}
+
+    /** 
+     * @brief   循环检测OBLOQ当前状态和解析串口数据，需要放在Arduino loop()函数里面 
+     * @return: 无
+     */
+    void update();
+    
+    /** 
+     * @brief   监听单个Iot设备
+     * @param   topic:监听设备的Topic
+     * @return: 无
+     */
+    bool subscribe(const String& topic);
+
+    /** 
+     * @brief   监听多个Iot设备
+     * @param   topicArray:数组地址，存放多个Iot设备Topic 
+     * @param   length:需要监听的Topic个数
+     * @return: 无
+     */
+    void subscribe(String topicArray[],uint8_t length);
+
+    /** 
+     * @brief   Iot设备发送消息
+     * @param   topic:发送消息的设备Topic 
+     * @param   message:发送的消息内容
+     * @return: 无
+     */
+    void publish(const String& topic, const String& message);
+
 private:
-	HardwareSerial* _hardSerial = NULL;
-	SoftwareSerial* _softSerial = NULL;
-	HandleRaw _handleRaw = NULL;
-	ReceiveMessageCallbak _receiveMessageCallbak = NULL;
-	String _wifiState = "-1";
-	bool _mqttConnectReady = false;
-	bool _subscribeReady = false;
-	bool _publishReady = false;
-	bool _disConnectReady = false;
-	bool _unsubscribeReady = false;
-	bool _isSerialReady = false;
-	int _interval = INTERVAL;
-	String _ip = "";
-	unsigned long _time = 0;
-	String _separator = "|";
+
+    Stream *_serial = NULL;
+    String _receiveStringIndex[10] = {};
+    String _separator = "|";
 	String _ssid = "";
 	String _pwd = "";
 	String _url = "iot.dfrobot.com.cn";
 	String _port= "1883";
-	String receiveStringIndex[10] = {};
+    String _iotId = "";
+    String _iotPwd = "";
+    String _ip = "";
+
+    bool _enable = false;
+    bool _isSerialReady = false; 
+    bool _reconnectMqtt = false;
+    bool _firstSubscribe = true;
+    String _wifiState = "";
+    String _subscribeState = "";
+
+    RawHandle _rawHandle = NULL;
+    MsgHandle _msgHandle = NULL;
+
+    enum State _currentState = State::ping;
+
+    unsigned long _time = 0;
+    //发送敲门指令的时间间隔
+    unsigned long _pingInterval = 2000;
+    //当wifi连接失败或者异常断开后自动每隔1分钟发送一次连接请求
+    unsigned long _wifiConnectInterval = 60000;
+    //后自动每隔1分钟发送一次连接请求
+    unsigned long _mqttConnectInterval = 60000;
+    //publish方法发送消息时限定每两秒钟发送一次数据
+    unsigned long publishInterval = 2000;
 
 private:
-	void handleConnectFlag();
-	void handleSubscribeFlag();
-	void handlePublishFlag();
-	void handleDisconnectFlag();
-	void handleReceiveMessage();
-	void handleUnsubscribeFlag();
-	
-public:
-	Obloq(HardwareSerial & hardSerial, String ssid, String pwd = "", String mac = "");
-	Obloq(SoftwareSerial & softSerial, String ssid, String pwd = "", String mac = "");
+    /** 
+     * @brief   串口发送数据
+     * @param   msg:发送的数据内容
+     * @return: 无
+     */
+    void sendMsg(const String & msg);
 
-	~Obloq();
+    /** 
+     * @brief   发送敲门指令 
+     * @return: 无
+     */
+    void ping();
 
-public:
-	///设置回显原始数据的回掉函数
-	void setHandleRaw(HandleRaw);
-	///设置消息回调函数,当监听的设备有消息返回时会自动调用设置的回调函数
-	void setReceiveCallBak(ReceiveMessageCallbak);
-	///监测串口是否准备好
-	bool isSerialReady();
-	///获取wifi连接状态
-	String getWifiState();
-	///获取wifi 的ip地址
-	String getIp();
-    //获取mqtt连接状态
-	bool getMqttConnectState();
-	//获取mqtt监听状态
-	bool getSubscribeState();
-	//获取消息发送状态
-	bool getPublishState();
-	///取消监听Topic的状态
-	bool getUnsubscribeState();
-	///发送串口敲门指令
-	void ping();
-	///Obloq循环监测和处理串口数据
-	void update();
-	///连接wifi
-	void connectWifi(const String& wifissid,const String& wifipwd);
-	///断开wifi
-	void disconnectWifi();
-	///重新连接wifi
-	void reconnectWifi();
-	///连接MQTT，默认：url = "iot.dfrobot.com.cn"，port= "1883"
-	void connect(const String& iot_id,const String& iot_pwd);
-	///连接MQTT
-	void connect(const String& url,const String& port,const String& iotid,const String& iotpwd);
-	///重新连接MQTT
-	void reconnect();
-	///注册设备
-	void subscribe(const String& topic);
-	///取消已经注册的设备
-	void resubscribe(const String& topic);
-	///向特定设备发送消息数据
-	void publish(const String& topic, const String &message);
-	///断开MQTT
-	void disconnect();
-private:
-	void receiveData(String);
-	bool sendMsg(const String&);
+    /** 
+     * @brief 连接wifi,wifi账号和密码是在构造函数中以参数形式传递进来的
+     * @return: 无
+     */
+    void connectWifi();
+
+    /** 
+     * @brief   处理串口接收的数据
+     * @param   data:串口接收的数据
+     * @return: 无
+     */
+    void receiveData(const String& data);
+
+    /** 
+     * @brief   以特定字符切割字符串 
+     * @param   data:存放字符串切割后的每个字段
+     * @param   str:切割的目标字符串
+     * @param:  delimiters:特定的切割字符
+     * @return: 切割得到的字段个数
+     */
+    int  splitString(String data[],String str,const char* delimiters);
+
+    /** 
+     * @brief   连接mqtt，mqtt的用户id和pwd等是在构造函数中以参数形式传递进来的
+     * @return: 无
+     */
+    void connectMqtt();
+
+    /** 
+     * @brief   获取Iot设备监听是否成功
+     * @return: true:监听成功，false:监听失败或者监听过程中
+     */
+    bool isSubscribeSuccessed(); 
+
+    /**
+     * @brief 获取Iot设备监听是否失败
+     * @return: true:监听失败，false:监听成功或者监听过程中
+     */
+    bool isSubscribeFailed();
 };
 
+#endif

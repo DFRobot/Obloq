@@ -1,69 +1,26 @@
-#include <Arduino.h>
-#include <SoftwareSerial.h>
+#include "Arduino.h"
+#include "SoftwareSerial.h"
 #include "Obloq.h"
 
-//MQTT连接相关参数
-const String ssid = "DFRobot-guest";
-const String password = "dfrobot@2017";
-const String iot_id = "r1qHJFJ4Z";
-const String iot_pwd = "SylqH1Y1VZ";
-const String topic1 = "SyZ6l-mBG";
-const String topic2 = "H1xdUtPZG";
-const String topic3 = "rkkdLtv-z";
-const String topic4 = "B1Aw8Fv-z";
-const String topic5 = "S1hwUtvZf";
+SoftwareSerial softSerial(10,11);
+//生成OBLOQ对象，参数：串口指针，wifiSsid,WifiPwd,iotId,iotPwd
+Obloq olq(&softSerial,"DFRobot-guest","dfrobot@2017","SJG02MoBSf","Sk7AnMsBrG");
+//监听多个Iot设备，将需要监听的设备Topic放进这个数组，最多能够同时监听5个Iot设备
+String topicArray[] = {"H15OXaqUG","HkoO7acIM","S1TOmpqUG","B1-t76c8f","r1GKmT9UG"};
 
-bool sendPingFlag = true;    
-unsigned long currentTime = 0;                       
-
-SoftwareSerial softSerial(10, 11);         // RX, TX
-Obloq olq(softSerial, ssid, password);
-
-//回调函数，打印OBLOQ返回的原始数据，需要用setHandleRaw()来设置
-void handleRaw(String& data)
+//设备的消息回调函数，监听的设备检测到消息会调用这个函数，可以在这个函数里面对接收的消息做判断和相应处理，需要用setMsgHandle()来设置这个回掉函数
+void msgHandle(const String& topic,const String& message)
 {
-    Serial.println(data);   //串口打印返回的数据
+    Serial.println("Topic : " + topic + " , " + "Message : " + message);
 }
-//已监听设备的消息回调函数，可以在这个函数里面对接收的消息做判断和相应处理，需要用setReceiveCallBak()来设置
-void subscribeMessageHandle(const String topic,const String message)
-{
-    Serial.print("Topic : " + topic);
-    Serial.print(" , ");
-    Serial.println("Message : " + message);
-}
-
 
 void setup()
 {
-    Serial.begin(9600);
     softSerial.begin(9600);
-    //设置回调函数，查看OBLOQ返回的原始数据
-    olq.setHandleRaw(handleRaw);
-    olq.setReceiveCallBak(subscribeMessageHandle);
+    olq.setMsgHandle(msgHandle);//注册消息回掉函数
 }
-
-bool subscribeFlag = true;
 void loop()
 {
     olq.update();
-    if(sendPingFlag && olq.getWifiState() == OBLOQWIFICONNECT)
-    {
-      sendPingFlag = false;
-      //连接物联网
-      olq.connect(iot_id,iot_pwd);
-    }
-    if(subscribeFlag && olq.getMqttConnectState())
-    {
-      //监听Topic
-      subscribeFlag = false;
-      olq.subscribe(topic1);
-      delay(100);
-      olq.subscribe(topic2);
-      delay(100);
-      olq.subscribe(topic3);
-      delay(100);
-      olq.subscribe(topic4);
-      delay(100);
-      olq.subscribe(topic5);
-    }
+    olq.subscribe(topicArray,5);//监听多个设备,topicArray是存放监听Topic的数组，5是表示监听5个设备
 }

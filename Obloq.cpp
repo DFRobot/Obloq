@@ -1,346 +1,66 @@
-#include <Arduino.h>
-#include <SoftwareSerial.h>
-#include <HardwareSerial.h>
+/*
+ * @Author: Jason 
+ * @Date: 2018-02-09 09:54:28 
+ * @Last Modified by: Jason
+ * @Last Modified time: 2018-02-09 17:56:19
+ */
+
 #include "Obloq.h"
 
-Obloq::Obloq(HardwareSerial & hardSerial, String ssid, String pwd, String mac)
+Obloq::Obloq(Stream *serial, const String& ssid, const String& pwd, const String& url,const String& port, const String& iotId, const String& iotPwd)
 {
-
-	this->_hardSerial = &hardSerial;
-	this->_ssid = ssid;
-	this->_pwd = pwd;
+    this->_serial = serial;
+    this->_ssid   = ssid;
+    this->_pwd    = pwd;
+    this->_url    = url;
+    this->_port   = port;
+    this->_iotId  = iotId;
+    this->_iotPwd = iotPwd;
 }
 
-Obloq::Obloq(SoftwareSerial & softSerial, String ssid, String pwd, String mac)
+Obloq::Obloq(Stream *serial, const String& ssid, const String& pwd, const String& iotId, const String& iotPwd)
 {
-	this->_softSerial = &softSerial;
-	this->_ssid = ssid;
-	this->_pwd = pwd;
+    this->_serial = serial;
+    this->_ssid   = ssid;
+    this->_pwd    = pwd;
+    this->_iotId  = iotId;
+    this->_iotPwd = iotPwd;
 }
 
 Obloq::~Obloq()
+{}
+
+void Obloq::setRawHandle(RawHandle handle)
 {
+    this->_rawHandle = handle;
 }
 
-/** 
- * @brief 设置回显原始数据的回掉函数
- * @param   handle:回掉函数
- * @return  无
- */
-void Obloq::setHandleRaw(HandleRaw handle)
+void Obloq::setMsgHandle(MsgHandle handle)
 {
-	this->_handleRaw = handle;
+    this->_msgHandle = handle;
 }
 
-void Obloq::setReceiveCallBak(ReceiveMessageCallbak handle)
-{
-	this->_receiveMessageCallbak = handle;
-}
-
-/** 
- * @brief 监测串口是否准备好
- * @param   无
- * @return  true:表示串口准备好，false:表示串口木有准备好
- */
-bool Obloq::isSerialReady()
-{
-	return this->_isSerialReady;
-}
-
-/** 
- * @brief 获取wifi连接状态
- * @param   无
- * @return  "1":  wifi断开连接
- * @return  "2":  wifi连接中
- * @return  "3":  wifi连接成功，已获取Obloq的IP
- * @return  "4":  wifi处于未连接状态
- */
-String Obloq::getWifiState()
-{
-	return this->_wifiState;
-}
-
-/** 
- * @brief 获取mqtt连接状态
- * @param   无
- * @return  true: mqtt连接成功，false:mqtt连接失败
- */
-bool Obloq::getMqttConnectState()
-{
-	return this->_mqttConnectReady;
-}
-
-/** 
- * @brief 获取设备监听状态
- * @param   无
- * @return  true: 监听设备成功，false:监听设备失败
- */
-bool Obloq::getSubscribeState()
-{
-	return this->_subscribeReady;
-	this->_subscribeReady = false;
-}
-/** 
- * @brief 获取设备发送消息状态
- * @param   无
- * @return  true: 发送消息成功，false:发送消息失败
- */
-bool Obloq::getPublishState()
-{
-	return this->_publishReady;
-	this->_publishReady = false;
-}
-
-/** 
- * @brief 获取取消监听设备的状态
- * @param   无
- * @return  true: 取消监听成功，false:取消监听失败
- */
-bool Obloq::getUnsubscribeState()
-{
-	return this->_unsubscribeReady;
-	this->_unsubscribeReady = false;
-}
-
-/** 
- * @brief 获取设备监听状态
- * @param   无
- * @return  true: 监听设备成功，false:监听设备失败
- */
-String Obloq::getIp()
-{
-	return this->_ip;
-}
-
-/** 
- * @brief 发送串口敲门指令
- * @param   无
- * @return  无
- */
-void Obloq::ping()
-{
-	this->_isSerialReady = false;
-	if (_hardSerial)
-	{
-		this->_hardSerial->print(F("|1|1|\r"));
-	}
-	else if (_softSerial)
-	{
-		this->_softSerial->print(F("|1|1|\r"));
-	}
-}
-
-/** 
- * @brief 发送消息数据
- * @param   msg:发送的消息内容
- * @return  true:表示发送成功，false:表示发送失败
- */
-bool Obloq::sendMsg(const String & msg)
-{
-	//Serial.print(F("Arduino send - > "));
-	//Serial.println(msg);
-		if (this->_isSerialReady)
-	{
-		if (this->_hardSerial)
-		{
-			this->_hardSerial->print(msg + "\r");
-		}
-		else if (this->_softSerial)
-		{
-			this->_softSerial->print(msg + "\r");
-		}
-		else
-		{
-			return false;
-		}
-		return true;
-	}
-	else
-	{
-		return false;
-	}
-}
-
-/********************************************************************************************
-Function    : splitString      
-Description : 剔除分隔符，逐一提取字符串     
-Params      : data[] 提取的字符串的目标储存地址；str 源字符串；delimiters 分隔符
-Return      : 共提取的字符串的个数 
-********************************************************************************************/
-int splitString(String data[],String str,const char* delimiters)
-{
-  char *s = (char *)(str.c_str());
-  int count = 0;
-  data[count] = strtok(s, delimiters);
-  while(data[count]){
-    data[++count] = strtok(NULL, delimiters);
-  }
-  return count;
-}
-
-/** 
- * @brief 处理接收的消息数据
- * @param   data:接收的消息数据
- * @return  无
- */
-void Obloq::receiveData(String data)
-{
-	const char* obloqMessage = data.c_str();
-	if (this->_handleRaw)
-	{ 
-		this->_handleRaw(data);
-	}
-	if (data == F("|1|1|")) //检测到敲门成功
-	{
-		this->_isSerialReady = true;
-		if (this->_wifiState == 2)
-		{
-			return;
-		}
-		this->connectWifi(this->_ssid,this->_pwd);
-		return;
-	}
-
-	if (data == F("|1|3|"))  //检测到心跳数据
-	{
-		return;
-	}
-
-	splitString(receiveStringIndex,data,"|");
-
-	if(receiveStringIndex[0] == "2")
-	{
-		this->_wifiState =  receiveStringIndex[1];
-		if(this->_wifiState == "3")
-			this->_ip = receiveStringIndex[2];
-		return;
-	}
-
-	if((receiveStringIndex[0] == "4") && (receiveStringIndex[1] == "1"))
-	{
-		switch(receiveStringIndex[2].toInt())
-		{
-			case 1: handleConnectFlag();break;
-			case 2: handleSubscribeFlag();break;
-			case 3: handlePublishFlag();break;
-			case 4: handleDisconnectFlag();break;
-			case 5: handleReceiveMessage();break;
-			case 6: handleUnsubscribeFlag();break;
-			default:break;
-		}
-	}
-}
-
-/** 
- * @brief 处理mqtt连接标志
- * @param   无
- * @return  无
- */
-void Obloq::handleConnectFlag()
-{
-	(receiveStringIndex[3] == "1")?this->_mqttConnectReady = true:this->_mqttConnectReady = false;
-}
-
-/** 
- * @brief 处理注册设备的标志
- * @param   无
- * @return  无
- */
-void Obloq::handleSubscribeFlag()
-{
-	(receiveStringIndex[3] == "1")?this->_subscribeReady = true:this->_subscribeReady = false;
-}
-
-/** 
- * @brief 处理发送消息的标志
- * @param   无
- * @return  无
- */
-void Obloq::handlePublishFlag()
-{
-	(receiveStringIndex[3] == "1")?this->_publishReady = true:this->_publishReady = false;
-}
-
-/** 
- * @brief 处理断开mqtt连接的标志
- * @param   无
- * @return  无
- */
-void Obloq::handleDisconnectFlag()
-{
-	if(receiveStringIndex[3] == "1")
-		this->_mqttConnectReady = false;
-}
-
-
-/** 
- * @brief 处理取消已注册设备的标志
- * @param   无
- * @return  无
- */
-void Obloq::handleUnsubscribeFlag()
-{
-	(receiveStringIndex[3] == "1")?this->_unsubscribeReady = true:this->_unsubscribeReady = false;
-}
-
-/** 
- * @brief Obloq循环监测和处理串口数据
- * @param   无
- * @return  无
- */
-void Obloq::handleReceiveMessage()
-{
-	if(this->_receiveMessageCallbak)
-	{
-		this->_receiveMessageCallbak(receiveStringIndex[3],receiveStringIndex[4]);
-	}
-}
-
-/** 
- * @brief Obloq循环监测和处理串口数据
- * @param   无
- * @return  无
- */
 void Obloq::update()
 {
-	if ((millis() - this->_time) >= this->_interval)
+    switch(this->_currentState)
+    {
+        case State::ping : ping(); break;
+        case State::wifiConnecting: connectWifi(); break;
+        case State::mqttConnecting: connectMqtt(); break;
+        default:break;
+    }
+    if (this->_serial && this->_serial->available() > 0)
 	{
-		this->_time = millis();
-		if (!this->_isSerialReady)
-		{
-			this->ping();
-		}
-	}
-
-	if (_softSerial && _softSerial->available() > 0)
-	{
-		String data = _softSerial->readStringUntil('\r');
+		String data = this->_serial->readStringUntil('\r');
+        //Serial.print("Rece: ");
+        //Serial.println(data);
 		while (true)
 		{
 			int length = data.length();
 			int index = data.indexOf('\r');
 			String subData = data.substring(0, index);
 			this->receiveData(subData);
-			if (index == -1 || length - index <= 1)
-			{
-				break;
-			}
-			else
-			{
-				subData = data.substring(index + 1, length);
-				data = String(subData);
-			}
-		}
-	}
-	if (_hardSerial && _hardSerial->available() > 0)
-	{
-		String data = _hardSerial->readStringUntil('\r');
-		while (true)
-		{
-			int length = data.length();
-			int index = data.indexOf('\r');
-			String subData = data.substring(0, index);
-			this->receiveData(subData);
+            
 			if (index == -1 || length - index <= 1)
 			{
 				break;
@@ -354,115 +74,240 @@ void Obloq::update()
 	}
 }
 
-/** 
- * @brief 连接wifi
- * @param   wifissid: wifi账号
- * @param   wifipwd: wifi密码
- * @return  无
- */
-void Obloq::connectWifi(const String& wifissid,const String& wifipwd)
+
+
+void Obloq::receiveData(const String& data)
 {
-	String connectWifi_msg = "|2|1|" + wifissid + "," + wifipwd + _separator;
-	this->sendMsg(connectWifi_msg);
+	if (data == F("|1|1|")) //检测到敲门成功
+	{
+		this->_currentState = State::wifiConnecting;
+        this->_time = millis() - this->_wifiConnectInterval; //将当前时间减去wifi连接的间隔时间，保证在第一次进入connectWifi函数的时候能够立刻连接wifi
+        if(this->_rawHandle)
+            this->_rawHandle(data);
+		return;
+	}
+
+	splitString(this->_receiveStringIndex,data,"|");
+
+	if(this->_receiveStringIndex[wifiProtocol::wifiType] == WIFITYPE) //wifi消息
+	{
+        //wifi异常断开
+        if(this->_receiveStringIndex[wifiProtocol::wifiCode] == WIFIDISCONNECT && this->_wifiState == WIFICONNECTED)
+        {
+            this->_wifiState = WIFIDISCONNECT;
+            this->_currentState = State::wifiConnecting;
+            if(this->_enable)
+            {
+                this->_enable = false;
+                this->_reconnectMqtt = true;
+            }
+            if(this->_rawHandle)
+                this->_rawHandle(data);
+        }
+		else if(this->_receiveStringIndex[wifiProtocol::wifiCode] == WIFICONNECTED)
+        {
+			this->_ip = this->_receiveStringIndex[wifiProtocol::wifiMessage];
+            this->_time = millis() - this->_mqttConnectInterval; //将当前时间减去mqtt连接的间隔时,这样在第一次进入mqtt连接
+            this->_wifiState = WIFICONNECTED;
+            this->_currentState = State::mqttConnecting;
+            // this->_currentState = State::none;
+        }
+		return;
+	}
+    else if(this->_receiveStringIndex[mqttProtocol::mqttType] == MQTTTYPE)//mqtt消息 
+    {
+        if(this->_receiveStringIndex[mqttProtocol::mqttFunction] == MQTTCONNECT) //连接mqtt返回的消息
+        {
+            if(this->_receiveStringIndex[mqttProtocol::mqttCode] == FAILED) //mqtt连接失败
+            {
+                this->_currentState = State::mqttConnecting; //重新设置当前状态
+                if(this->_enable)  //之前已经成功连接过mqtt，再次连接需要用“重新连接mqtt”协议，不能使用“连接mqtt"协议，因为第一次连接的时候需要new出来一个新的mqtt句柄      
+                {
+                    this->_enable = false;
+                    this->_reconnectMqtt = true;              
+                    this->_time = millis() - this->_mqttConnectInterval; //将当前时间减去mqtt连接的间隔时,这样第一次进入函数connectMqtt()的时候能够立即执行发送消息的指令
+                }
+                if(this->_rawHandle)
+                {
+                    this->_rawHandle(data);
+                }
+            }
+            else //mqtt连接成功
+            {
+                this->_enable = true;
+                this->_currentState = State::none;
+            }
+        }
+        else if(this->_receiveStringIndex[mqttProtocol::mqttFunction] == MQTTPUBLISH) //发送消息
+        {
+            if(this->_receiveStringIndex[mqttProtocol::mqttCode] == FAILED && this->_rawHandle) //发送消息失败
+            {
+                this->_rawHandle(data);
+            }
+        }
+        else if(this->_receiveStringIndex[mqttProtocol::mqttFunction] == MQTTSUBSCRIBE) //订阅Topic
+        {
+            if(this->_receiveStringIndex[mqttProtocol::mqttCode] == FAILED) //订阅Topic失败
+            {
+                this->_subscribeState = FAILED; 
+                if(this->_rawHandle)
+                    this->_rawHandle(data);
+            }
+            else //订阅Topic成功
+            {
+                this->_subscribeState = SUCCESSED;
+            }
+        }
+        else if(this->_receiveStringIndex[mqttProtocol::mqttFunction] == MQTTRECEIVEMSG) //监听的Topic返回消息
+        {
+            if(this->_msgHandle)
+            {
+                this->_msgHandle(this->_receiveStringIndex[mqttProtocol::mqttTopic],this->_receiveStringIndex[mqttProtocol::mqttMessage]);
+            }
+        }
+    }
+
 }
 
-/** 
- * @brief 断开已经连接的wifi
- * @param   wifissid: wifi账号
- * @param   wifipwd: wifi密码
- * @return  无
- */
-void Obloq::disconnectWifi()
+void Obloq::connectMqtt()
 {
-	this->sendMsg("|2|2|");
+    if(millis() - this->_time >=this->_mqttConnectInterval)
+    {
+        this->_time= millis();
+        if(this->_reconnectMqtt)
+        {
+            String reconnectMsg = F("|4|1|5|");
+            this->sendMsg(reconnectMsg);
+        }
+        else
+        {
+            String connectMsg = "|4|1|1|" + _url + _separator + _port + _separator + _iotId + _separator + _iotPwd + _separator;
+            this->sendMsg(connectMsg);
+        }
+    }
 }
 
-/** 
- * @brief 重新连接wifi，前提是在此之前成功连接过wifi并断开了
- * @param   wifissid: wifi账号
- * @param   wifipwd: wifi密码
- * @return  无
- */
-void Obloq::reconnectWifi()
+bool Obloq::subscribe(const String& topic)
 {
-	this->connectWifi(this->_ssid,this->_pwd);
+    if(this->_enable)
+    {
+        if(this->_firstSubscribe || this->isSubscribeFailed())
+        {
+            this->_firstSubscribe = false;
+            String subscribeMsg = "|4|1|2|" + topic + _separator;
+            this->sendMsg(subscribeMsg);
+        }
+        if(this->isSubscribeSuccessed()) //注册成功了一个topic
+        {
+            //Serial.println("subscribe topic success");
+            return true;
+        }
+        return false;
+    }
 }
 
-/** 
- * @brief 连接MQTT，默认：url = "iot.dfrobot.com.cn"，port= "1883"
- * @param   iot_id: 物联网iot_id，从物联网网址上直接复制
- * @param   iot_pwd: 物联网iot_pwd，从物联网网址上直接复制
- * @return  无
- */
-void Obloq::connect(const String& iot_id,const String& iot_pwd)
+void Obloq::subscribe(String topicArray[],uint8_t length)
 {
-	this->connect(this->_url,this->_port,iot_id,iot_pwd);
-}
-/** 
- * @brief 连接MQTT
- * @param   client_id: 物联网client_id，填写唯一的英文标识符即可
- * @param   iot_id: 物联网iot_id，从物联网网址上直接复制
- * @param   iot_pwd: 物联网iot_pwd，从物联网网址上直接复制
- * @param   url： 连接的物联网url
- * @param   port: 连接的物联网端口
- * @return  无
- */
-void Obloq::connect(const String& url,const String& port,const String& iotid,const String& iotpwd)
-{
-	String connect_msg = "|4|1|1|" + url + _separator + port + _separator + iotid + _separator + iotpwd + _separator;
-	this->sendMsg(connect_msg);
+    static uint8_t num = 0;
+    static uint8_t arrayLength = 0;
+    if(length > MAXTOPICNUMBER)
+        arrayLength = MAXTOPICNUMBER;
+    else
+        arrayLength = length;
+    if(num < arrayLength) //topic没有全部订阅完成
+    {
+        if(subscribe(topicArray[num]))
+        {
+            num++;
+            this->_firstSubscribe = true;
+            // Serial.print("num: ");
+            // Serial.println(num);
+        }
+    }
 }
 
-/** 
- * @brief 重新连接MQTT
- * @param   无
- * @return  无 
- */
-void Obloq::reconnect()
+void Obloq::publish(const String& topic, const String& message)
 {
-	String reconnect_msg = F("|4|1|5|");
-	this->sendMsg(reconnect_msg);
+    static unsigned long publishCurrentTime = 0;
+    if(this->_enable)
+    {
+        if(millis() - publishCurrentTime > publishInterval)
+        {
+            publishCurrentTime = millis();
+            String publishMsg = "|4|1|3|" + topic + _separator + message + _separator;
+            this->sendMsg(publishMsg);
+        }  
+    }
 }
 
-/** 
- * @brief 注册设备
- * @param   topic:设备ID
- * @return  无
- */
-void Obloq::subscribe(const String& topic)
+void Obloq::ping()
 {
-	String subscribe_msg = "|4|1|2|" + topic + _separator;
-	this->sendMsg(subscribe_msg);
+    if ((millis() - this->_time) >= this->_pingInterval)
+    {
+        this->_time = millis();
+        this->_serial->print(F("|1|1|\r"));
+    }
 }
 
-/** 
- * @brief 取消已经注册的设备
- * @param   topic:设备ID
- * @return  无
- */
-void Obloq::resubscribe(const String& topic)
+void Obloq::connectWifi()
 {
-	String subscribe_msg = "|4|1|6|" + topic + _separator;
-	this->sendMsg(subscribe_msg);
-}
-/** 
- * @brief 向特定设备发送消息数据
- * @param   topic:设备ID
- * @return  message：发送的消息内容
- */
-void Obloq::publish(const String& topic, const String &message)
-{
-	String publish_msg = "|4|1|3|" + topic + _separator + message + _separator;
-	this->sendMsg(publish_msg);
+    if ((millis() - this->_time) >= this->_wifiConnectInterval)
+    {
+        this->_time = millis();
+        String connectWifiMsg = "|2|1|" + _ssid + "," + _pwd + _separator;
+        this->sendMsg(connectWifiMsg);
+    }
 }
 
-/** 
- * @brief 断开MQTT
- * @param   无
- * @return  无 
- */
-void Obloq::disconnect()
-{	
-	String disconnect_msg = F("|4|1|4|");
-	this->sendMsg(disconnect_msg);	
+bool Obloq::isWifiConnected()
+{
+    if(this->_wifiState == WIFICONNECTED)
+        return true;
+    else 
+        return false;
 }
+
+void Obloq::sendMsg(const String & msg)
+{
+	if (this->_serial)
+	{
+        this->_serial->print(msg + "\r");
+        // Serial.println("Send: " + msg);
+	}
+}
+
+int Obloq::splitString(String data[],String str,const char* delimiters)
+{
+    char *s = (char *)(str.c_str());
+    int count = 0;
+    data[count] = strtok(s, delimiters);
+    while(data[count])
+    {
+        data[++count] = strtok(NULL, delimiters);
+    }
+    return count;
+}
+
+
+bool Obloq::isSubscribeSuccessed()
+{
+    if(this->_subscribeState == SUCCESSED)
+    {
+        this->_subscribeState = ""; 
+        return true;
+    }
+    return false;
+}
+
+bool Obloq::isSubscribeFailed()
+{
+    if(this->_subscribeState == FAILED)
+    {
+        this->_subscribeState = "";
+        return true;
+    }
+    return false;
+}
+
+
+
