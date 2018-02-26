@@ -231,7 +231,12 @@ void Obloq::publish(const String& topic, const String& message)
     static unsigned long publishCurrentTime = 0;
     if(this->_enable)
     {
-        if(millis() - publishCurrentTime > publishInterval)
+        if(publishInterval == 0)
+        {
+            String publishMsg = "|4|1|3|" + topic + _separator + message + _separator;
+            this->sendMsg(publishMsg); 
+        }
+        else if(millis() - publishCurrentTime > publishInterval)
         {
             publishCurrentTime = millis();
             String publishMsg = "|4|1|3|" + topic + _separator + message + _separator;

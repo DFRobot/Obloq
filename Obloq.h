@@ -193,7 +193,7 @@ private:
     //后自动每隔1分钟发送一次连接请求
     unsigned long _mqttConnectInterval = 60000;
     //publish方法发送消息时限定每两秒钟发送一次数据
-    unsigned long publishInterval = 2000;
+    unsigned long publishInterval = 0;
 
 private:
     /** 
