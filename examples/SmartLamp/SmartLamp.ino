@@ -8,7 +8,7 @@ const String devTopic = "HkfVZ9BBz";
  //led小灯引脚
 int ledPin = 2;
 
-//已监听设备的消息回调函数，可以在这个函数里面对接收的消息做判断和相应处理，需要用setMsgHandle()来设置这个回掉函数
+//已监听设备的消息回调函数，可以在这个函数里面对接收的消息做判断和相应处理，需要用setMsgHandle()来设置这个回调函数
 void msgHandle(const String& topic,const String& message)
 {
     if(devTopic == topic)
@@ -24,7 +24,7 @@ void setup()
 {
     pinMode(ledPin,OUTPUT);
     softSerial.begin(9600);
-    olq.setMsgHandle(msgHandle);//注册消息回掉函数
+    olq.setMsgHandle(msgHandle);//注册消息回调函数
 }
 void loop()
 {
