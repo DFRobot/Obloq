@@ -14,12 +14,12 @@ void msgHandle(const String& topic,const String& message)
 
 void setup()
 {
+    Serial.begin(115200);
     softSerial.begin(9600);
     olq.setMsgHandle(msgHandle);//注册消息回掉函数
-
+    olq.subscribe("S1TOmpqUG"); //监听设备,设备Topic:S1TOmpqUG
 }
 void loop()
 {
     olq.update();
-    olq.subscribe("S1TOmpqUG"); //监听设备,设备Topic:S1TOmpqUG
 }

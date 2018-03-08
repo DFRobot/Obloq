@@ -25,9 +25,9 @@ void setup()
     pinMode(ledPin,OUTPUT);
     softSerial.begin(9600);
     olq.setMsgHandle(msgHandle);//注册消息回掉函数
+    olq.subscribe(devTopic); //监听设备
 }
 void loop()
 {
     olq.update();
-    olq.subscribe(devTopic); //监听设备
 }

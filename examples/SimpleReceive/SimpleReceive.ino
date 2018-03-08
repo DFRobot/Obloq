@@ -24,9 +24,9 @@ void setup()
     softSerial.begin(9600);
     pinMode(ledPin,OUTPUT);
     olq.setMsgHandle(msgHandle);//注册消息回掉函数
+    olq.subscribe(devTopic); //监听设备,设备Topic:SyZ6l-mBG
 }
 void loop()
 {
     olq.update();
-    olq.subscribe(devTopic); //监听设备,设备Topic:SyZ6l-mBG
 }

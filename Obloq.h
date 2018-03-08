@@ -74,7 +74,7 @@ public:
 
 public:
     /** 
-     * @brief 构造函数,连接指定url的Iot
+     * @brief   构造函数,连接指定url的Iot
      * @param   serial:设备ID
      * @param   ssid:wifi账号
      * @param:  pwd:wifi密码
@@ -87,7 +87,7 @@ public:
     Obloq(Stream *serial, const String& ssid, const String& pwd, const String& url,const String& port, const String& iotId, const String& iotPwd);
 
     /** 
-     * @brief 构造函数,连接默认的Easy Iot
+     * @brief   构造函数,连接默认的Easy Iot
      * @param   serial:设备ID
      * @param   ssid:wifi账号
      * @param:  pwd:wifi密码
@@ -138,19 +138,11 @@ public:
     void update();
     
     /** 
-     * @brief   监听单个Iot设备
+     * @brief   监听Iot设备,实际上是记录监听的topic
      * @param   topic:监听设备的Topic
      * @return: 无
      */
-    bool subscribe(const String& topic);
-
-    /** 
-     * @brief   监听多个Iot设备
-     * @param   topicArray:数组地址，存放多个Iot设备Topic 
-     * @param   length:需要监听的Topic个数
-     * @return: 无
-     */
-    void subscribe(String topicArray[],uint8_t length);
+    void subscribe(String topic);
 
     /** 
      * @brief   Iot设备发送消息
@@ -184,6 +176,8 @@ private:
     MsgHandle _msgHandle = NULL;
 
     enum State _currentState = State::ping;
+    String _topicArray[MAXTOPICNUMBER];
+    int _topicCount = 0;
 
     unsigned long _time = 0;
     //发送敲门指令的时间间隔
@@ -236,6 +230,19 @@ private:
      * @return: 无
      */
     void connectMqtt();
+
+    /** 
+     * @brief   监听所有记录的topic
+     * @return: 无
+     */
+    void subscribeTopicArray();
+
+    /** 
+     * @brief   监听单个Iot设备
+     * @param   topic:监听设备的Topic
+     * @return: true:监听成功,false:监听失败
+     */
+    bool subscribeSingleTopic(const String& topic);
 
     /** 
      * @brief   获取Iot设备监听是否成功

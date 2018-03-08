@@ -72,9 +72,12 @@ void Obloq::update()
 			}
 		}
 	}
+    //如果mqtt连接成功，则去监听所有记录的topic
+    if(enable())
+    {
+        subscribeTopicArray();
+    }
 }
-
-
 
 void Obloq::receiveData(const String& data)
 {
@@ -187,7 +190,41 @@ void Obloq::connectMqtt()
     }
 }
 
-bool Obloq::subscribe(const String& topic)
+void Obloq::subscribe(String topic)
+{
+    //检查topic是否已经达到最大值5个
+    if(this->_topicCount >= MAXTOPICNUMBER)
+        return;
+    
+    //检测topic是否已经记录过
+    for(int i = 0; i < this->_topicCount; i++)
+    {
+        if(this->_topicArray[i] == topic)
+        {
+            return;
+        }
+    }
+    //记录需要监听的topic
+    this->_topicArray[this->_topicCount++] = topic;
+    
+}
+
+void Obloq::subscribeTopicArray()
+{
+    static uint8_t num = 0;
+    if(this->_topicCount != 0 && num < this->_topicCount) //订阅所有记录的topic
+    {
+        if(subscribeSingleTopic(this->_topicArray[num]))
+        {
+            num++;
+            this->_firstSubscribe = true;
+            // Serial.print("num: ");
+            // Serial.println(num);
+        }
+    }
+}
+
+bool Obloq::subscribeSingleTopic(const String& topic)
 {
     if(this->_enable)
     {
@@ -203,26 +240,6 @@ bool Obloq::subscribe(const String& topic)
             return true;
         }
         return false;
-    }
-}
-
-void Obloq::subscribe(String topicArray[],uint8_t length)
-{
-    static uint8_t num = 0;
-    static uint8_t arrayLength = 0;
-    if(length > MAXTOPICNUMBER)
-        arrayLength = MAXTOPICNUMBER;
-    else
-        arrayLength = length;
-    if(num < arrayLength) //topic没有全部订阅完成
-    {
-        if(subscribe(topicArray[num]))
-        {
-            num++;
-            this->_firstSubscribe = true;
-            // Serial.print("num: ");
-            // Serial.println(num);
-        }
     }
 }
 
