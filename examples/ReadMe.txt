@@ -1,2 +1,2 @@
-文档页样例程序：Doc page sample
-智玩程序：SmartButton; SmartLamp
+閺傚洦銆傛い鍨壉娓氬鈻兼惔蹇ョ窗Doc page sample
+閺呰櫣甯虹粙瀣碍閿涙瓔martButton; SmartLamp

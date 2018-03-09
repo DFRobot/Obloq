@@ -17,7 +17,7 @@ void setup()
     Serial.begin(115200);
     softSerial.begin(9600);
     olq.setMsgHandle(msgHandle);//注册消息回掉函数
-    olq.subscribe("H15OXaqUG");//监听多个设备
+    olq.subscribe("H15OXaqUG"); //监听多个设备
     olq.subscribe("HkoO7acIM");
     olq.subscribe("S1TOmpqUG");
     olq.subscribe("B1-t76c8f");

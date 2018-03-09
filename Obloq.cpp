@@ -45,6 +45,7 @@ void Obloq::update()
     switch(this->_currentState)
     {
         case State::ping : ping(); break;
+        case State::getVersion: checkFirmwareVersion();break;
         case State::wifiConnecting: connectWifi(); break;
         case State::mqttConnecting: connectMqtt(); break;
         default:break;
@@ -81,18 +82,27 @@ void Obloq::update()
 
 void Obloq::receiveData(const String& data)
 {
-	if (data == F("|1|1|")) //检测到敲门成功
-	{
-		this->_currentState = State::wifiConnecting;
-        this->_time = millis() - this->_wifiConnectInterval; //将当前时间减去wifi连接的间隔时间，保证在第一次进入connectWifi函数的时候能够立刻连接wifi
-        if(this->_rawHandle)
-            this->_rawHandle(data);
-		return;
-	}
+    //如果注册的原始数据回调函数，则返回OBLOQ发送到Arduino的原始串口数据
+    if(this->_rawHandle)
+        this->_rawHandle(data);
 
 	splitString(this->_receiveStringIndex,data,"|");
 
-	if(this->_receiveStringIndex[wifiProtocol::wifiType] == WIFITYPE) //wifi消息
+    //返回系统消息
+    if(this->_receiveStringIndex[systemProtocol::systemType] == SYSTEMTYPE)
+    {
+        if(this->_receiveStringIndex[systemProtocol::systemCode] == SYSTEMPING) //PING通了
+        {
+            this->_currentState = State::getVersion;
+        }
+        else if(this->_receiveStringIndex[systemProtocol::systemCode] == SYSTEMVERSION) //返回版本信息
+        {
+            this->_firmwareVersion = this->_receiveStringIndex[systemProtocol::systemMessage];
+            this->_currentState = State::wifiConnecting;
+            this->_time = millis() - this->_wifiConnectInterval; //将当前时间减去wifi连接的间隔时间，保证在第一次进入connectWifi函数的时候能够立刻连接wifi
+        }
+    }
+	else if(this->_receiveStringIndex[wifiProtocol::wifiType] == WIFITYPE) //wifi消息
 	{
         //wifi异常断开
         if(this->_receiveStringIndex[wifiProtocol::wifiCode] == WIFIDISCONNECT && this->_wifiState == WIFICONNECTED)
@@ -104,8 +114,6 @@ void Obloq::receiveData(const String& data)
                 this->_enable = false;
                 this->_reconnectMqtt = true;
             }
-            if(this->_rawHandle)
-                this->_rawHandle(data);
         }
 		else if(this->_receiveStringIndex[wifiProtocol::wifiCode] == WIFICONNECTED)
         {
@@ -130,10 +138,6 @@ void Obloq::receiveData(const String& data)
                     this->_reconnectMqtt = true;              
                     this->_time = millis() - this->_mqttConnectInterval; //将当前时间减去mqtt连接的间隔时,这样第一次进入函数connectMqtt()的时候能够立即执行发送消息的指令
                 }
-                if(this->_rawHandle)
-                {
-                    this->_rawHandle(data);
-                }
             }
             else //mqtt连接成功
             {
@@ -141,20 +145,11 @@ void Obloq::receiveData(const String& data)
                 this->_currentState = State::none;
             }
         }
-        else if(this->_receiveStringIndex[mqttProtocol::mqttFunction] == MQTTPUBLISH) //发送消息
-        {
-            if(this->_receiveStringIndex[mqttProtocol::mqttCode] == FAILED && this->_rawHandle) //发送消息失败
-            {
-                this->_rawHandle(data);
-            }
-        }
         else if(this->_receiveStringIndex[mqttProtocol::mqttFunction] == MQTTSUBSCRIBE) //订阅Topic
         {
             if(this->_receiveStringIndex[mqttProtocol::mqttCode] == FAILED) //订阅Topic失败
             {
                 this->_subscribeState = FAILED; 
-                if(this->_rawHandle)
-                    this->_rawHandle(data);
             }
             else //订阅Topic成功
             {
@@ -170,6 +165,16 @@ void Obloq::receiveData(const String& data)
         }
     }
 
+}
+
+void Obloq::checkFirmwareVersion()
+{
+    if((millis() - this->_time) >= this->_gerVersionInterval)
+    {
+        this->_time = millis();
+        String getVersionMsg = "|1|2|";
+        this->sendMsg(getVersionMsg);
+    }
 }
 
 void Obloq::connectMqtt()
@@ -217,6 +222,7 @@ void Obloq::subscribeTopicArray()
         if(subscribeSingleTopic(this->_topicArray[num]))
         {
             num++;
+            //下一个topic第一次注册的标志位置位
             this->_firstSubscribe = true;
             // Serial.print("num: ");
             // Serial.println(num);
@@ -248,12 +254,12 @@ void Obloq::publish(const String& topic, const String& message)
     static unsigned long publishCurrentTime = 0;
     if(this->_enable)
     {
-        if(publishInterval == 0)
+        if(this->_publishInterval == 0)
         {
             String publishMsg = "|4|1|3|" + topic + _separator + message + _separator;
             this->sendMsg(publishMsg); 
         }
-        else if(millis() - publishCurrentTime > publishInterval)
+        else if(millis() - publishCurrentTime > this->_publishInterval)
         {
             publishCurrentTime = millis();
             String publishMsg = "|4|1|3|" + topic + _separator + message + _separator;

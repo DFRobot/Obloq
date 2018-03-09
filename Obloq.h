@@ -20,6 +20,11 @@
 #define WIFITYPE   "2"
 #define MQTTTYPE   "4"
 
+//系统返回的消息状态
+#define SYSTEMPING      "1"
+#define SYSTEMVERSION   "2"
+#define SYSTEMHEARTBEAT "3"
+
 //wifi连接状态下的各个子状态
 #define WIFIDISCONNECT    "1"
 #define WIFICONNECTING    "2"
@@ -37,12 +42,20 @@ enum State
 {
     none,
     ping,
-    ready,
+    getVersion,
     wifiConnecting,
     mqttConnecting,
     mqttConnected
 };
 
+//系统消息协议字段的位置
+class systemProtocol
+{
+public:
+    static const uint8_t systemType    = 0;
+    static const uint8_t systemCode    = 1;
+    static const uint8_t systemMessage = 2;
+};
 
 //wifi协议各字段的位置
 class wifiProtocol
@@ -132,6 +145,12 @@ public:
     String getIp() const {return this->_ip;}
 
     /** 
+     * @brief  获取OBLOQ固件版本号
+     * @return: 固件版本号，如果返回"xxx"，表示版本号没有获取成功
+     */
+    String getFirmwareVersion() const {return this->_firmwareVersion;}
+
+    /** 
      * @brief   循环检测OBLOQ当前状态和解析串口数据，需要放在Arduino loop()函数里面 
      * @return: 无
      */
@@ -171,6 +190,7 @@ private:
     bool _firstSubscribe = true;
     String _wifiState = "";
     String _subscribeState = "";
+    String _firmwareVersion = "xxx"; 
 
     RawHandle _rawHandle = NULL;
     MsgHandle _msgHandle = NULL;
@@ -187,7 +207,9 @@ private:
     //后自动每隔1分钟发送一次连接请求
     unsigned long _mqttConnectInterval = 60000;
     //publish方法发送消息时限定每两秒钟发送一次数据
-    unsigned long publishInterval = 0;
+    unsigned long _publishInterval = 0;
+    //获取固件版本的请求时间间隔100ms
+    unsigned long _gerVersionInterval = 100;
 
 private:
     /** 
@@ -255,6 +277,12 @@ private:
      * @return: true:监听失败，false:监听成功或者监听过程中
      */
     bool isSubscribeFailed();
+
+    /**
+     * @brief 检查固件版本，发送消息到OBLOQ
+     * @return: 无
+     */
+    void checkFirmwareVersion();
 };
 
 #endif
