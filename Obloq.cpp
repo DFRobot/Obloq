@@ -27,6 +27,14 @@ Obloq::Obloq(Stream *serial, const String& ssid, const String& pwd, const String
     this->_iotPwd = iotPwd;
 }
 
+
+Obloq::Obloq(Stream *serial, const String& ssid, const String& pwd)
+{
+    this->_serial = serial;
+    this->_ssid   = ssid;
+    this->_pwd    = pwd;
+}
+
 Obloq::~Obloq()
 {}
 
@@ -38,6 +46,11 @@ void Obloq::setRawHandle(RawHandle handle)
 void Obloq::setMsgHandle(MsgHandle handle)
 {
     this->_msgHandle = handle;
+}
+
+void Obloq::setHttpMsgHandle(HttpMsgHandle handle)
+{
+    this->_httpMsgHandle = handle;
 }
 
 void Obloq::update()
@@ -120,11 +133,30 @@ void Obloq::receiveData(const String& data)
 			this->_ip = this->_receiveStringIndex[wifiProtocol::wifiMessage];
             this->_time = millis() - this->_mqttConnectInterval; //将当前时间减去mqtt连接的间隔时,这样在第一次进入mqtt连接
             this->_wifiState = WIFICONNECTED;
-            this->_currentState = State::mqttConnecting;
-            // this->_currentState = State::none;
+            if(this->_iotId == "" || this->_iotPwd == "")
+                this->_currentState = State::none;
+            else
+                this->_currentState = State::mqttConnecting;
         }
 		return;
 	}
+    else if(this->_receiveStringIndex[httpProtocol::httpType] == HTTPTYPE)    //返回http消息
+    {
+        if(this->_httpMsgHandle)
+        {
+            if(this->_firmwareVersion == "1.0") 
+            {
+                if(this->_receiveStringIndex[httpProtocol::httpCode] == "200")
+                    this->_httpMsgHandle(this->_receiveStringIndex[httpProtocol::httpCode],this->_receiveStringIndex[httpProtocol::httpMessage]);
+                else
+                    this->_httpMsgHandle(this->_receiveStringIndex[httpProtocol::httpCode],"");
+            }
+            else
+            {
+                this->_httpMsgHandle(this->_receiveStringIndex[httpProtocol::httpCode],this->_receiveStringIndex[httpProtocol::httpMessage]);
+            }
+        }
+    }
     else if(this->_receiveStringIndex[mqttProtocol::mqttType] == MQTTTYPE)//mqtt消息 
     {
         if(this->_receiveStringIndex[mqttProtocol::mqttFunction] == MQTTCONNECT) //连接mqtt返回的消息
@@ -337,5 +369,17 @@ bool Obloq::isSubscribeFailed()
     return false;
 }
 
+
+void Obloq::get(const String& url)
+{
+    String getMsg = "|3|1|" + url + _separator;
+    this->sendMsg(getMsg);
+}
+
+void Obloq::post(const String& url, const String& content)
+{
+    String postMsg = "|3|2|" + url + "," + content + _separator;
+    this->sendMsg(postMsg);    
+}
 
 

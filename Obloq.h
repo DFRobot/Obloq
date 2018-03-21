@@ -2,7 +2,7 @@
  * @Author: Jason 
  * @Date: 2018-02-09 09:54:51 
  * @Last Modified by: Jason
- * @Last Modified time: 2018-02-22 
+ * @Last Modified time: 2018-03-21 
  */
 #ifndef _OBLOQ_H_
 #define _OBLOQ_H_
@@ -18,6 +18,7 @@
 //返回消息的类型
 #define SYSTEMTYPE "1"
 #define WIFITYPE   "2"
+#define HTTPTYPE   "3"
 #define MQTTTYPE   "4"
 
 //系统返回的消息状态
@@ -66,6 +67,15 @@ public:
     static const uint8_t wifiMessage = 2;
 };
 
+//http协议各字段位置
+class httpProtocol
+{
+public:
+    static const uint8_t httpType    = 0;
+    static const uint8_t httpCode    = 1;
+    static const uint8_t httpMessage = 2;
+};
+
 //mqtt协议各字段的位置
 class mqttProtocol
 {
@@ -84,6 +94,7 @@ public:
     //回调函数的函数指针
     typedef void (*RawHandle)(const String& message);
     typedef void (*MsgHandle)(const String& topic, const String& message);
+    typedef void (*HttpMsgHandle)(const String& code, const String& message);
 
 public:
     /** 
@@ -109,9 +120,22 @@ public:
      * @return: 无
      */
     Obloq(Stream *serial, const String& ssid, const String& pwd, const String& iotId, const String& iotPwd);
+    
+    /** 
+     * @brief   构造函数,连接http的时候使用这个这个构造函数来生成实例
+     * @param   serial:设备ID
+     * @param   ssid:wifi账号
+     * @param:  pwd:wifi密码
+     * @param:  iotID:连接iot的用户ID,连接Easy Iot可在工作间里面获取这个ID
+     * @param:  iotPwd:连接iot的密码，连接Easy Iot可在工作间里面获取这个ID
+     * @return: 无
+     */
+    Obloq(Stream *serial, const String& ssid, const String& pwd);
+
     ~Obloq();
 
 
+    //******************************************************MQTT API********************************************
     /** 
      * @brief 设置原始数据回调函数,当有错误发生时会调用设置的回调函数来返回错误信息
      * @param   handle:回调函数
@@ -125,6 +149,13 @@ public:
      * @return: 无
      */
     void setMsgHandle(MsgHandle handle);
+
+    /** 
+     * @brief   设置http返回消息回调函数
+     * @param   handle:回调函数
+     * @return: 无
+     */
+    void setHttpMsgHandle(HttpMsgHandle handle);
 
     /** 
      * @brief   获取OBLOQ连接Iot状态
@@ -171,6 +202,23 @@ public:
      */
     void publish(const String& topic, const String& message);
 
+
+    //******************************************************Http API********************************************
+    /** 
+     * @brief   Http get请求
+     * @param   url : get请求的网址 
+     * @return: 无
+     */
+    void get(const String& url);
+
+    /** 
+     * @brief   Http post请求
+     * @param   url: post请求的网址
+     * @param   content: post的消息内容
+     * @return: 无
+     */
+    void post(const String& url, const String& content);
+
 private:
 
     Stream *_serial = NULL;
@@ -194,6 +242,7 @@ private:
 
     RawHandle _rawHandle = NULL;
     MsgHandle _msgHandle = NULL;
+    HttpMsgHandle _httpMsgHandle = NULL;
 
     enum State _currentState = State::ping;
     String _topicArray[MAXTOPICNUMBER];
