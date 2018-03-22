@@ -25,6 +25,7 @@ void loop()
     if(millis() - currentTime > 2000)
     {
         currentTime =  millis();
-        olq.get("http://192.168.7.123/test");
+        // post传递的数据是JSON格式
+        olq.post("http://192.168.7.123/test","{\"abc\":12222}");
     }
 }
