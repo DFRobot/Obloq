@@ -3,7 +3,9 @@
 #include "Obloq.h"
 
 SoftwareSerial softSerial(10,11);
-//生成OBLOQ对象，参数：串口指针，wifiSsid,WifiPwd,iotId,iotPwd
+
+//生成OBLOQ对象，参数：串口指针，wifiSsid,WifiPwd
+//Generate OBLOQ object, parameters: serial pointer, wifiSsid, WifiPwd
 Obloq olq(&softSerial,"DFRobot-guest","dfrobot@2017");
 static unsigned long currentTime = 0; 
 
@@ -26,6 +28,7 @@ void loop()
     {
         currentTime =  millis();
         // post传递的数据是JSON格式
+		// post data is in JSON format
         olq.post("http://192.168.7.123/test","{\"abc\":12222}");
     }
 }
