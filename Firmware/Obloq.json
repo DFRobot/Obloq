@@ -1,5 +1,5 @@
 {"8266edu":
   [
-    {"version":2, "file":"https://raw.githubusercontent.com/DFRobot/Obloq/master/Firmware/ObloqV2.txt", "md5":"A993E1E9295647ECA2D7F8D70BF5F55A", "size":30628}
+    {"version":2, "file":"https://raw.githubusercontent.com/DFRobot/Obloq/master/Firmware/ObloqV2.bin", "md5":"C0D516DE507D3872FB29E804A1FCEBAF", "size":430880}
   ]
 }
