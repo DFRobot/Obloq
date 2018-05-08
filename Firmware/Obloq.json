@@ -1,5 +1,6 @@
-{"8266edu":
+{"obloq":
   [
-    {"version":2, "file":"http://download.dfrobot.com.cn/obloq/ObloqV2.txt", "md5":"08E92EB0D33627731836ACDECD263D0B", "size":443664}
+    {"version":2, "file":"http://download.dfrobot.com.cn/obloq/ObloqV2.txt", "md5":"85893DCC2A27DF3DEC4E59172EF95DF1", "size":441152},
+    {"version":3, "file":"http://download.dfrobot.com.cn/obloq/ObloqV3.txt", "md5":"0BCB86B6C27447369914FB450F676B9E", "size":441152}
   ]
 }
